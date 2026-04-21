@@ -1,4 +1,4 @@
-# mutable-cosmos
+# Pseudo Maker
 
 Anonymize Swedish PII in documents so you can safely share them with public LLMs, then restore the originals on the way back.
 
@@ -58,7 +58,7 @@ Best for deploying to an internal server that laptops hit over the browser.
 
 ```sh
 git clone <this-repo>
-cd mutable-cosmos
+cd pseudo-maker
 docker compose build       # ~5–10 min first time (bakes spaCy Swedish model into the image)
 docker compose up -d
 curl -f http://127.0.0.1:8765/api/health
@@ -79,16 +79,16 @@ pyinstaller --onefile \
   --collect-all spacy --collect-all sv_core_news_lg --collect-all thinc \
   --collect-all faker --collect-all docx \
   --collect-all fastapi --collect-all uvicorn --collect-all starlette --collect-all multipart \
-  --add-data "src/mutable_cosmos/server/static:mutable_cosmos/server/static" \
-  --paths src --name mutable-cosmos entrypoint.py
+  --add-data "src/pseudo_maker/server/static:pseudo_maker/server/static" \
+  --paths src --name pseudo-maker entrypoint.py
 ```
 
-The result is `dist/mutable-cosmos` (~263 MB, includes Python + spaCy + the Swedish model). It runs on macOS / Linux / Windows as a single file — no Python needed on the target machine. Build on the OS you want to run on (PyInstaller doesn't cross-compile cleanly).
+The result is `dist/pseudo-maker` (~263 MB, includes Python + spaCy + the Swedish model). It runs on macOS / Linux / Windows as a single file — no Python needed on the target machine. Build on the OS you want to run on (PyInstaller doesn't cross-compile cleanly).
 
 ```sh
-./dist/mutable-cosmos serve        # opens the UI at http://127.0.0.1:8765
-./dist/mutable-cosmos clean my.docx
-./dist/mutable-cosmos restore reply.docx --mapping my_MAPPING.json
+./dist/pseudo-maker serve        # opens the UI at http://127.0.0.1:8765
+./dist/pseudo-maker clean my.docx
+./dist/pseudo-maker restore reply.docx --mapping my_MAPPING.json
 ```
 
 ### Option 3 — Development install
@@ -97,13 +97,13 @@ For running tests, extending detection rules, or contributing.
 
 ```sh
 git clone <this-repo>
-cd mutable-cosmos
+cd pseudo-maker
 python -m venv .venv
 source .venv/bin/activate        # on Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 python -m spacy download sv_core_news_lg
 pytest                           # full test suite (~40 tests, <5s)
-mutable-cosmos serve             # start the web UI
+pseudo-maker serve             # start the web UI
 ```
 
 ## Usage
@@ -124,27 +124,27 @@ Click **Finalize** and you get two downloads: `<name>_CLEANED.<ext>` and `<name>
 
 ```sh
 # Detect and write a cleaned doc + mapping + suggested LLM system prompt
-mutable-cosmos clean client.docx
+pseudo-maker clean client.docx
 # → client_CLEANED.docx, client_MAPPING.json, client_PROMPT.txt
 
 # Restore the LLM output
-mutable-cosmos restore reply.docx --mapping client_MAPPING.json
+pseudo-maker restore reply.docx --mapping client_MAPPING.json
 # → reply_RESTORED.docx, reply_AUDIT.json
 
 # Dry-run: list detected entities without writing anything
-mutable-cosmos detect client.docx
+pseudo-maker detect client.docx
 
 # Start the web UI
-mutable-cosmos serve [--host 0.0.0.0] [--port 8765] [--no-browser]
+pseudo-maker serve [--host 0.0.0.0] [--port 8765] [--no-browser]
 ```
 
-Run `mutable-cosmos <cmd> --help` for the full option set (seed, NER toggle, fuzzy threshold, audit path, …).
+Run `pseudo-maker <cmd> --help` for the full option set (seed, NER toggle, fuzzy threshold, audit path, …).
 
 ## Project layout
 
 ```
-mutable-cosmos/
-├── src/mutable_cosmos/
+pseudo-maker/
+├── src/pseudo_maker/
 │   ├── cli.py                   # Typer CLI: clean / restore / detect / serve
 │   ├── orchestrate.py           # Preview + finalize + restore + audit-log helpers
 │   ├── detect/                  # Detection pipeline

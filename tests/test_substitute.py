@@ -1,10 +1,10 @@
 import random
 
-from mutable_cosmos.detect.recognizers.orgnr import is_valid_orgnr
-from mutable_cosmos.detect.recognizers.personnummer import is_valid_personnummer
-from mutable_cosmos.substitute.fakes import generate_fake
-from mutable_cosmos.substitute.mapper import Mapper
-from mutable_cosmos.substitute.valid_format import (
+from pseudo_maker.detect.recognizers.orgnr import is_valid_orgnr
+from pseudo_maker.detect.recognizers.personnummer import is_valid_personnummer
+from pseudo_maker.substitute.fakes import generate_fake
+from pseudo_maker.substitute.mapper import Mapper
+from pseudo_maker.substitute.valid_format import (
     fake_orgnr,
     fake_personnummer,
 )

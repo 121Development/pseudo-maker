@@ -1,4 +1,4 @@
-# Deploying mutable-cosmos on an internal server
+# Deploying pseudo-maker on an internal server
 
 Intended profile: **small team (≤5 concurrent users), Windows 11 laptops hitting
 an internal Docker host over the LAN, no authentication — network boundary is
@@ -22,7 +22,7 @@ From the project directory:
 ```sh
 docker compose build     # ~5–10 minutes first time (model download dominates)
 docker compose up -d
-docker compose logs -f   # verify "mutable-cosmos UI running at http://0.0.0.0:8765"
+docker compose logs -f   # verify "pseudo-maker UI running at http://0.0.0.0:8765"
 ```
 
 Verify reachability from the server:
@@ -99,8 +99,8 @@ docker compose up -d           # picks up the new image, rolls the container
 
 ## 6. Troubleshooting
 
-- **Healthcheck failing** — `docker compose logs mutable-cosmos`. First start takes 15–20 s because spaCy loads the model into memory.
-- **413 on upload** — file exceeds 25 MB. Edit `MAX_UPLOAD_BYTES` in `src/mutable_cosmos/server/app.py` and rebuild, or raise your reverse-proxy body limit.
+- **Healthcheck failing** — `docker compose logs pseudo-maker`. First start takes 15–20 s because spaCy loads the model into memory.
+- **413 on upload** — file exceeds 25 MB. Edit `MAX_UPLOAD_BYTES` in `src/pseudo_maker/server/app.py` and rebuild, or raise your reverse-proxy body limit.
 - **Slow detection on large docs** — spaCy is CPU-bound. For docs >50 pages, allocate more CPU (`cpus: "2.0"` in the compose `deploy` section).
 - **Model download fails during build** — the `python -m spacy download sv_core_news_lg` layer needs outbound HTTPS to github.com and PyPI. If you build behind a proxy, set `HTTP_PROXY`/`HTTPS_PROXY` build args.
 

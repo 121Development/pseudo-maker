@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mutable-cosmos"
+name = "pseudo-maker"
 version = "0.1.0"
 description = "Anonymize Swedish PII in Word documents for safe LLM use, then restore."
 requires-python = ">=3.10"
@@ -27,13 +27,13 @@ dev = [
 ]
 
 [project.scripts]
-mutable-cosmos = "mutable_cosmos.cli:app"
+pseudo-maker = "pseudo_maker.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-"mutable_cosmos.server" = ["static/*"]
+"pseudo_maker.server" = ["static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

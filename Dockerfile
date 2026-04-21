@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.6
 #
-# mutable-cosmos — web UI for Swedish-PII anonymization of documents.
+# pseudo-maker — web UI for Swedish-PII anonymization of documents.
 # Runs the `serve` subcommand. Bind to 0.0.0.0 inside the container; operator
 # restricts network exposure via docker/compose/firewall.
 
@@ -33,14 +33,14 @@ RUN groupadd --system --gid 10001 app \
 USER app
 
 # Sessions live in /tmp/mcosmos_* — mount as tmpfs (see docker-compose.yml).
-ENV MUTABLE_COSMOS_HOST=0.0.0.0 \
-    MUTABLE_COSMOS_PORT=8765
+ENV PSEUDO_MAKER_HOST=0.0.0.0 \
+    PSEUDO_MAKER_PORT=8765
 
 EXPOSE 8765
 
 # tini reaps zombies and forwards signals so Ctrl+C / container stop is clean.
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "mutable-cosmos serve --host ${MUTABLE_COSMOS_HOST} --port ${MUTABLE_COSMOS_PORT} --no-browser"]
+CMD ["sh", "-c", "pseudo-maker serve --host ${PSEUDO_MAKER_HOST} --port ${PSEUDO_MAKER_PORT} --no-browser"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD python -c "import urllib.request,sys; urllib.request.urlopen(f'http://127.0.0.1:${MUTABLE_COSMOS_PORT}/api/health', timeout=3).read() or sys.exit(1)" || exit 1
+  CMD python -c "import urllib.request,sys; urllib.request.urlopen(f'http://127.0.0.1:${PSEUDO_MAKER_PORT}/api/health', timeout=3).read() or sys.exit(1)" || exit 1

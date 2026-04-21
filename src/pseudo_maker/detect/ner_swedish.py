@@ -1,6 +1,6 @@
 """Swedish NER via spaCy sv_core_news_lg.
 
-Maps spaCy entity labels to mutable-cosmos types, and applies a post-filter
+Maps spaCy entity labels to pseudo-maker types, and applies a post-filter
 that drops obvious false positives:
 
   - Single-token lowercase PERSON matches are almost always wrong (spaCy

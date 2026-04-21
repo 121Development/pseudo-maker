@@ -6,7 +6,7 @@ from pathlib import Path
 
 from docx import Document
 
-from mutable_cosmos import orchestrate
+from pseudo_maker import orchestrate
 
 
 def _docx_text(path: Path) -> str:

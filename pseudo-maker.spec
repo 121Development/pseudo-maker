@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('src/mutable_cosmos/server/static', 'mutable_cosmos/server/static')]
+datas = [('src/pseudo_maker/server/static', 'pseudo_maker/server/static')]
 binaries = []
 hiddenimports = []
 tmp_ret = collect_all('spacy')
@@ -45,7 +45,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='mutable-cosmos',
+    name='pseudo-maker',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

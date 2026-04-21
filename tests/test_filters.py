@@ -1,14 +1,14 @@
 """Tests for the feedback-driven false-positive filters."""
-from mutable_cosmos.detect.blocklist import (
+from pseudo_maker.detect.blocklist import (
     is_blocklisted_person,
     is_country_or_continent,
 )
-from mutable_cosmos.detect.ner_swedish import (
+from pseudo_maker.detect.ner_swedish import (
     _classify_location,
     _should_reject_company,
     _should_reject_person,
 )
-from mutable_cosmos.detect.recognizers.postal_code_se import PostalCodeSeRecognizer
+from pseudo_maker.detect.recognizers.postal_code_se import PostalCodeSeRecognizer
 
 
 def _pc_values(text):
@@ -90,7 +90,7 @@ def test_classify_location_city_vs_street():
 
 
 def test_strip_leading_noise():
-    from mutable_cosmos.detect.ner_swedish import _strip_leading_noise
+    from pseudo_maker.detect.ner_swedish import _strip_leading_noise
     assert _strip_leading_noise("mainly Irak") == ("Irak", 7)
     assert _strip_leading_noise("huvudsakligen Stockholm") == ("Stockholm", 14)
     assert _strip_leading_noise("Stockholm") == ("Stockholm", 0)
@@ -98,7 +98,7 @@ def test_strip_leading_noise():
 
 def test_fake_city_generator_produces_city():
     import random
-    from mutable_cosmos.substitute.fakes import generate_fake
+    from pseudo_maker.substitute.fakes import generate_fake
     fake = generate_fake("CITY", "Stockholm", random.Random(0))
     # Cities are single-token, no digits.
     assert " " not in fake or fake.count(" ") <= 2

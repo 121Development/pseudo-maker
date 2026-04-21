@@ -4,8 +4,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from mutable_cosmos import orchestrate
-from mutable_cosmos.restore.restore import RestoreReport
+from pseudo_maker import orchestrate
+from pseudo_maker.restore.restore import RestoreReport
 
 
 def test_write_audit_log_matches_schema(tmp_path: Path):

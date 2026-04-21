@@ -1,4 +1,4 @@
-"""FastAPI web UI for mutable-cosmos.
+"""FastAPI web UI for pseudo-maker.
 
 Runs on 127.0.0.1 only. Sessions are held in memory and written to per-session
 temp directories. Uploaded files and generated outputs live there until the
@@ -27,10 +27,10 @@ MAX_UPLOAD_BYTES = 25 * 1024 * 1024   # 25 MB per file
 
 
 def _static_root() -> Path:
-    # Works both in dev (src/mutable_cosmos/server/static) and when PyInstaller
+    # Works both in dev (src/pseudo_maker/server/static) and when PyInstaller
     # extracts data files to _MEIPASS (via --add-data).
     if hasattr(sys, "_MEIPASS"):
-        candidate = Path(sys._MEIPASS) / "mutable_cosmos" / "server" / "static"
+        candidate = Path(sys._MEIPASS) / "pseudo_maker" / "server" / "static"
         if candidate.exists():
             return candidate
     return Path(__file__).parent / "static"
@@ -94,7 +94,7 @@ def _rm_rf(path: Path) -> None:
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="mutable-cosmos", docs_url=None, redoc_url=None)
+    app = FastAPI(title="pseudo-maker", docs_url=None, redoc_url=None)
     store = SessionStore()
 
     if STATIC_ROOT.exists():
@@ -306,7 +306,7 @@ def run(host: str = "127.0.0.1", port: int = 8765, *, open_browser: bool = True)
             time.sleep(0.8)
             webbrowser.open(url)
         threading.Thread(target=_open, daemon=True).start()
-    print(f"mutable-cosmos UI running at {url}   (Ctrl+C to stop)")
+    print(f"Pseudo Maker UI running at {url}   (Ctrl+C to stop)")
     # Access log ON (INFO) for operational visibility in container deployments.
     # Session IDs appear in URLs; sessions expire within minutes, so logging
     # them is acceptable for small-team LAN-only deployments.

@@ -1,19 +1,19 @@
-from mutable_cosmos.detect.recognizers.base import luhn_check, luhn_checksum
-from mutable_cosmos.detect.recognizers.bankgiro_plusgiro import BankgiroRecognizer
-from mutable_cosmos.detect.recognizers.credit_card import CreditCardRecognizer
-from mutable_cosmos.detect.recognizers.date_age import AgeRecognizer, DateRecognizer
-from mutable_cosmos.detect.recognizers.email import EmailRecognizer
-from mutable_cosmos.detect.recognizers.iban import IbanRecognizer
-from mutable_cosmos.detect.recognizers.ip_url import IpRecognizer, UrlRecognizer
-from mutable_cosmos.detect.recognizers.license_plate_se import LicensePlateSeRecognizer
-from mutable_cosmos.detect.recognizers.orgnr import OrgnrRecognizer, is_valid_orgnr
-from mutable_cosmos.detect.recognizers.passport import PassportRecognizer
-from mutable_cosmos.detect.recognizers.personnummer import (
+from pseudo_maker.detect.recognizers.base import luhn_check, luhn_checksum
+from pseudo_maker.detect.recognizers.bankgiro_plusgiro import BankgiroRecognizer
+from pseudo_maker.detect.recognizers.credit_card import CreditCardRecognizer
+from pseudo_maker.detect.recognizers.date_age import AgeRecognizer, DateRecognizer
+from pseudo_maker.detect.recognizers.email import EmailRecognizer
+from pseudo_maker.detect.recognizers.iban import IbanRecognizer
+from pseudo_maker.detect.recognizers.ip_url import IpRecognizer, UrlRecognizer
+from pseudo_maker.detect.recognizers.license_plate_se import LicensePlateSeRecognizer
+from pseudo_maker.detect.recognizers.orgnr import OrgnrRecognizer, is_valid_orgnr
+from pseudo_maker.detect.recognizers.passport import PassportRecognizer
+from pseudo_maker.detect.recognizers.personnummer import (
     PersonnummerRecognizer,
     is_valid_personnummer,
 )
-from mutable_cosmos.detect.recognizers.phone_se import PhoneSeRecognizer
-from mutable_cosmos.detect.recognizers.postal_code_se import PostalCodeSeRecognizer
+from pseudo_maker.detect.recognizers.phone_se import PhoneSeRecognizer
+from pseudo_maker.detect.recognizers.postal_code_se import PostalCodeSeRecognizer
 
 
 def _types(values, recognizer):
