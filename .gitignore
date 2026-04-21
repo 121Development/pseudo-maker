@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+mapping.json
+cleaned.docx
+restored.docx
+prompt.txt

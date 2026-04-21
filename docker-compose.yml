@@ -1,0 +1,49 @@
+services:
+  mutable-cosmos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mutable-cosmos:latest
+    container_name: mutable-cosmos
+    restart: unless-stopped
+    # Expose to the LAN. Operator restricts reachability via host firewall or
+    # by binding to a specific internal IP: "192.168.10.5:8765:8765".
+    ports:
+      - "8765:8765"
+    environment:
+      MUTABLE_COSMOS_HOST: "0.0.0.0"
+      MUTABLE_COSMOS_PORT: "8765"
+    # Session temp dirs live under /tmp. Tmpfs means they never hit persistent
+    # disk and are gone on container restart — belt-and-braces alongside the
+    # in-app TTL cleanup.
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+    # Drop unnecessary capabilities; this app only needs to read/write temp files.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    # tmpfs above covers the session workspace; give spaCy a writable spot too.
+    volumes:
+      - type: tmpfs
+        target: /home/app/.cache
+        tmpfs:
+          size: 128m
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; urllib.request.urlopen('http://127.0.0.1:8765/api/health',timeout=3).read() or sys.exit(1)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

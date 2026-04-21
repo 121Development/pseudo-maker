@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mutable-cosmos</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>mutable-cosmos</h1>
+    <p class="tagline">Anonymize Swedish PII. Share with public LLMs. Restore on return.</p>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="clean">Clean</button>
+    <button class="tab" data-tab="restore">Restore</button>
+  </nav>
+
+  <main>
+    <!-- Clean tab -->
+    <section id="panel-clean" class="panel active">
+      <div id="clean-upload" class="stage active">
+        <div class="dropzone" id="dropzone-clean">
+          <div class="dropzone-inner">
+            <p class="dropzone-title">Drop a .docx, .txt, or .md here</p>
+            <p class="dropzone-sub">or click to choose</p>
+            <input type="file" id="file-clean" accept=".docx,.txt,.md" hidden />
+          </div>
+        </div>
+      </div>
+
+      <div id="clean-processing" class="stage">
+        <div class="spinner"></div>
+        <p>Detecting entities…</p>
+      </div>
+
+      <div id="clean-preview" class="stage">
+        <h2>Detected entities <span id="entity-count" class="muted"></span></h2>
+        <p class="hint">Uncheck anything you want kept as-is. Unchecked entities will <strong>not</strong> be replaced.</p>
+        <div class="bulk-controls">
+          <button class="link-btn" id="select-all">Select all</button>
+          <button class="link-btn" id="select-none">Deselect all</button>
+        </div>
+        <div class="table-wrap">
+          <table id="entity-table">
+            <thead>
+              <tr>
+                <th class="col-check">Replace</th>
+                <th>Type</th>
+                <th>Original</th>
+                <th>Will become <span class="muted">(click to edit)</span></th>
+                <th class="col-count">Count</th>
+              </tr>
+            </thead>
+            <tbody id="entity-body"></tbody>
+          </table>
+        </div>
+        <div class="actions">
+          <button id="finalize-btn" class="primary">Finalize and prepare downloads</button>
+          <button id="cancel-btn" class="secondary">Start over</button>
+        </div>
+      </div>
+
+      <div id="clean-done" class="stage">
+        <h2>Done</h2>
+        <p id="clean-done-summary" class="muted"></p>
+        <ul class="downloads">
+          <li><a id="download-cleaned" class="download-btn" download>📄 Download cleaned document</a></li>
+          <li><a id="download-mapping" class="download-btn" download>🗝  Download mapping (keep safe!)</a></li>
+        </ul>
+        <p class="warning">⚠ The mapping file contains the original sensitive values. Don't share it with the LLM — keep it locally.</p>
+        <button id="clean-again-btn" class="secondary">Clean another file</button>
+      </div>
+
+      <div id="clean-error" class="stage error">
+        <h2>Something went wrong</h2>
+        <pre id="clean-error-msg"></pre>
+        <button id="clean-error-reset" class="secondary">Start over</button>
+      </div>
+    </section>
+
+    <!-- Restore tab -->
+    <section id="panel-restore" class="panel">
+      <div id="restore-upload" class="stage active">
+        <p class="hint">Upload the document returned by the LLM, plus the mapping file you saved from the clean step.</p>
+        <div class="restore-grid">
+          <div class="dropzone small" id="dropzone-restore-doc">
+            <div class="dropzone-inner">
+              <p class="dropzone-title">LLM-modified document</p>
+              <p class="dropzone-sub" id="restore-doc-name">.docx, .txt, or .md</p>
+              <input type="file" id="file-restore-doc" accept=".docx,.txt,.md" hidden />
+            </div>
+          </div>
+          <div class="dropzone small" id="dropzone-restore-mapping">
+            <div class="dropzone-inner">
+              <p class="dropzone-title">Mapping JSON</p>
+              <p class="dropzone-sub" id="restore-mapping-name">_MAPPING.json</p>
+              <input type="file" id="file-restore-mapping" accept=".json,application/json" hidden />
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="restore-go" class="primary" disabled>Restore</button>
+        </div>
+      </div>
+
+      <div id="restore-processing" class="stage">
+        <div class="spinner"></div>
+        <p>Restoring…</p>
+      </div>
+
+      <div id="restore-done" class="stage">
+        <h2>Restored</h2>
+        <ul class="downloads">
+          <li><a id="download-restored" class="download-btn" download>📄 Download restored document</a></li>
+          <li><a id="download-audit" class="download-btn" download>📋 Download audit log (JSON)</a></li>
+        </ul>
+        <div id="restore-report" class="report"></div>
+        <button id="restore-again-btn" class="secondary">Restore another file</button>
+      </div>
+
+      <div id="restore-error" class="stage error">
+        <h2>Something went wrong</h2>
+        <pre id="restore-error-msg"></pre>
+        <button id="restore-error-reset" class="secondary">Start over</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Running locally on 127.0.0.1 — your files never leave this machine.</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

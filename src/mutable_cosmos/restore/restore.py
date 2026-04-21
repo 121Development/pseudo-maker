@@ -1,0 +1,139 @@
+"""Restore: replace fake values in an LLM output with the originals.
+
+Strategy:
+  1. For every mapping entry, search for `fake` and any `aliases` (exact match).
+     For PERSON entries, also try the first-name slice of the fake to catch
+     short-form mentions ("Erik" inside "Erik Lindqvist" → "Anna" of original).
+  2. Sort all matches by length descending so longer matches win when nested
+     (e.g. "Erik Lindqvist" before just "Erik").
+  3. Apply non-overlapping replacements to the text.
+  4. For mapping entries with zero exact matches, run rapidfuzz partial-ratio
+     against tokens of the document. If a token has a high enough similarity
+     score (>= threshold), replace it and flag as fuzzy in the report.
+"""
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from typing import Sequence
+
+from rapidfuzz import fuzz, process
+
+
+@dataclass
+class RestoreReport:
+    exact: list[dict] = field(default_factory=list)   # {entry_id, fake, original, count}
+    fuzzy: list[dict] = field(default_factory=list)   # {entry_id, matched_text, original, score}
+    missing: list[dict] = field(default_factory=list) # {entry_id, fake, original, type}
+
+
+def _candidates_for(entry: dict) -> list[tuple[str, str]]:
+    """Return [(search_string_in_llm_output, original_to_restore_to)] pairs.
+
+    Always includes the full fake → full original. Also includes each
+    fake-side alias the mapper recorded (e.g. "Karin" → "Anna" when the
+    source doc referenced the person by first name only).
+    """
+    out: list[tuple[str, str]] = [(entry["fake"], entry["original"])]
+    fake_aliases: dict = entry.get("fake_aliases") or {}
+    for orig_alias, fake_alias in fake_aliases.items():
+        if fake_alias and fake_alias != entry["fake"]:
+            out.append((fake_alias, orig_alias))
+    return out
+
+
+def _find_matches(text: str, needle: str) -> list[tuple[int, int]]:
+    if not needle:
+        return []
+    out = []
+    pat = re.compile(r"(?<!\w)" + re.escape(needle) + r"(?!\w)")
+    for m in pat.finditer(text):
+        out.append((m.start(), m.end()))
+    return out
+
+
+def restore(
+    text: str,
+    entries: Sequence[dict],
+    *,
+    fuzzy_threshold: int = 92,
+) -> tuple[str, RestoreReport]:
+    report = RestoreReport()
+    spans: list[tuple[int, int, str, str]] = []  # (start, end, replacement, entry_id)
+
+    matched_entry_ids: set[str] = set()
+    for entry in entries:
+        local_count = 0
+        for search, replacement in _candidates_for(entry):
+            for start, end in _find_matches(text, search):
+                spans.append((start, end, replacement, entry["id"]))
+                local_count += 1
+        if local_count > 0:
+            matched_entry_ids.add(entry["id"])
+            report.exact.append({
+                "entry_id": entry["id"],
+                "type": entry.get("type", ""),
+                "fake": entry["fake"],
+                "original": entry["original"],
+                "count": local_count,
+            })
+
+    # Resolve overlaps: prefer longer matches, then earliest
+    spans.sort(key=lambda s: (-(s[1] - s[0]), s[0]))
+    accepted: list[tuple[int, int, str, str]] = []
+    for s in spans:
+        if not any(_overlap(s, a) for a in accepted):
+            accepted.append(s)
+
+    accepted.sort(key=lambda s: s[0], reverse=True)
+    out = text
+    for start, end, repl, _eid in accepted:
+        out = out[:start] + repl + out[end:]
+
+    # Fuzzy fallback for unmatched entries
+    unmatched = [e for e in entries if e["id"] not in matched_entry_ids]
+    if unmatched:
+        # Tokenize the *output* (post-exact) into multi-word windows
+        # Single-word tokens are quick; we use process.extractOne against fake names.
+        # For simplicity we look at word-level windows of size 1..4.
+        words = re.findall(r"\S+", out)
+        for entry in unmatched:
+            fake = entry["fake"]
+            best = None  # (score, start_word_idx, n_words)
+            n_fake_words = max(1, len(fake.split()))
+            for n in {1, n_fake_words}:
+                for i in range(len(words) - n + 1):
+                    candidate = " ".join(words[i : i + n])
+                    score = fuzz.ratio(fake, candidate)
+                    if score >= fuzzy_threshold and (best is None or score > best[0]):
+                        best = (score, i, n, candidate)
+            if best:
+                _score, _i, _n, candidate = best
+                # Replace only the first occurrence
+                pat = re.compile(r"(?<!\w)" + re.escape(candidate) + r"(?!\w)")
+                out, n_subs = pat.subn(entry["original"], out, count=1)
+                if n_subs > 0:
+                    report.fuzzy.append({
+                        "entry_id": entry["id"],
+                        "type": entry.get("type", ""),
+                        "fake": entry["fake"],
+                        "matched_text": candidate,
+                        "original": entry["original"],
+                        "score": _score,
+                    })
+                    matched_entry_ids.add(entry["id"])
+
+    for entry in entries:
+        if entry["id"] not in matched_entry_ids:
+            report.missing.append({
+                "entry_id": entry["id"],
+                "fake": entry["fake"],
+                "original": entry["original"],
+                "type": entry["type"],
+            })
+
+    return out, report
+
+
+def _overlap(a, b) -> bool:
+    return a[0] < b[1] and b[0] < a[1]
