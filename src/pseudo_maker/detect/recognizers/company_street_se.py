@@ -1,0 +1,101 @@
+"""Pattern-based Swedish company names and street addresses.
+
+These complement spaCy NER, which often misses the legal suffix
+("Nordström Bygg AB (publ)") or the house number ("Storgatan 12B").
+"""
+from __future__ import annotations
+
+import re
+from typing import Iterable
+
+from .base import Span
+
+_CAP = r"[A-ZÅÄÖÉ][\wåäöÅÄÖéü&.\-]*"
+_COMPANY = re.compile(
+    rf"\b({_CAP}(?:[ \t]+(?:{_CAP}|&|och|i|på))*?)[ \t]+"
+    r"(AB|HB|KB|Aktiebolag|Handelsbolag|Kommanditbolag)\b([ \t]*\(publ\))?"
+)
+
+# Capitalised words that start sentences / clauses in contracts and are not
+# part of the company name: "Mellan Volvo AB och ...", "Bolaget Volvo AB".
+_LEADING_STOPWORDS = {
+    "mellan", "med", "och", "hos", "från", "till", "för", "av", "den", "det",
+    "detta", "denna", "dessa", "bolaget", "företaget", "avtalet", "enligt",
+    "där", "som", "vid", "på", "i", "om", "att", "nedan", "ovan", "parterna",
+    "kunden", "leverantören", "arbetsgivaren", "uppdragsgivaren", "säljaren",
+    "köparen", "hyresvärden", "hyresgästen", "vi", "jag", "han", "hon",
+    "dotterbolaget", "moderbolaget", "koncernen", "firma", "firman", "kund",
+    "leverantör", "part", "anställd", "vd", "ordförande", "styrelsen", "the",
+    "and", "with", "between", "at", "for", "inom", "under", "efter", "innan",
+    "samt", "eller", "även", "också", "när", "då", "så", "men", "både",
+}
+
+_STREET_SUFFIX = (
+    r"(?:gatan|gata|vägen|väg|stigen|torget|torg|gränd|gränden|allén|allé|"
+    r"esplanaden|leden|platsen|plan|kajen|backen|backe|parken|liden|gången|"
+    r"strand|stranden|kroken|slingan|ringen|bryggan)"
+)
+_STREET_PREFIX = r"(?:(?:Sankt|S:t|Gamla|Norra|Södra|Östra|Västra|Lilla|Stora|Nya|Övre|Nedre)[ \t]+)?"
+_STREET = re.compile(
+    rf"\b{_STREET_PREFIX}[A-ZÅÄÖ][a-zåäöéü]*{_STREET_SUFFIX}"
+    r"[ \t]+\d{1,4}(?:[A-Za-z]|[ \t][A-Z])?(?![\wåäö])(?:[ \t]*,[ \t]*\d{1,2}[ \t]*tr\.?)?"
+)
+
+
+class CompanySeRecognizer:
+    name = "COMPANY"
+
+    def find(self, text: str) -> Iterable[Span]:
+        for m in _COMPANY.finditer(text):
+            words = m.group(1).split()
+            # Drop leading stopwords: "Mellan Nordström Bygg" → "Nordström Bygg".
+            while words and words[0].lower() in _LEADING_STOPWORDS:
+                words.pop(0)
+            if not words or words[-1].lower() in ("och", "i", "på", "&"):
+                continue
+            start = text.index(words[0], m.start(1))
+            end = m.end()
+            yield Span(start, end, self.name, text[start:end], 0.9, "regex")
+
+
+class StreetSeRecognizer:
+    name = "STREET"
+
+    def find(self, text: str) -> Iterable[Span]:
+        for m in _STREET.finditer(text):
+            yield Span(m.start(), m.end(), self.name, m.group(0), 0.9, "regex")
+
+
+# Large Swedish employers / brands that spaCy frequently misses or truncates.
+# In a contract, CV or case file, who someone works for is identifying.
+KNOWN_SWEDISH_COMPANIES = [
+    "Volvo", "Volvo Cars", "Scania", "Ericsson", "IKEA", "Ikea", "H&M", "Spotify",
+    "Klarna", "SEB", "Swedbank", "Handelsbanken", "Nordea", "Länsförsäkringar",
+    "Telia", "Tele2", "Telenor", "Vattenfall", "ICA", "Ica", "Coop", "Axfood",
+    "Skanska", "NCC", "Peab", "JM", "Saab", "SKF", "Atlas Copco", "Sandvik",
+    "Electrolux", "Husqvarna", "Alfa Laval", "Essity", "SCA", "Boliden", "SSAB",
+    "Investor", "Securitas", "Assa Abloy", "Hexagon", "Epiroc", "Getinge",
+    "Elekta", "Northvolt", "PostNord", "Postnord", "Systembolaget", "Apoteket",
+    "Folksam", "Trygg-Hansa", "Skandia", "Bonnier", "Arla", "Clas Ohlson",
+    "Jula", "Biltema", "Stena", "Fortum", "Ellevio", "Sweco", "AFRY", "Afry",
+    "Tietoevry", "Capio", "Samhall", "Riksbyggen", "HSB", "Akademiska Hus",
+    "Vasakronan", "Castellum", "Fabege", "Atrium Ljungberg", "Kinnevik",
+    "Lindex", "KappAhl", "Kappahl", "Åhléns", "Willys", "Hemköp", "Mathem",
+    "Avanza", "Nordnet", "Collector", "Resurs Bank", "SBAB", "Söderberg & Partners",
+]
+_KNOWN_CO = re.compile(
+    r"(?<![\w@.])(" + "|".join(re.escape(c) for c in sorted(KNOWN_SWEDISH_COMPANIES, key=len, reverse=True)) + r")"
+    # Optional division/subsidiary words: "Volvo Personvagnar", "ICA Gruppen", "Telia Sverige"
+    r"((?:[ \t]+(?:Personvagnar|Lastvagnar|Gruppen|Group|Sverige|Sweden|Nordic|Norden|"
+    r"Maxi|Kvantum|Supermarket|Nära|Cars|Trucks|Bank|Fastigheter|Bostad|Energi|"
+    r"Försäkring|Försäkringar|Liv|Pension|Construction|Holding|Konsult))*)"
+    r"(?![\wåäöÅÄÖ])"
+)
+
+
+class KnownCompanySeRecognizer:
+    name = "COMPANY"
+
+    def find(self, text: str) -> Iterable[Span]:
+        for m in _KNOWN_CO.finditer(text):
+            yield Span(m.start(), m.end(), self.name, m.group(0), 0.9, "regex")

@@ -48,6 +48,21 @@ Realistic Swedish-locale fakes via `Faker(sv_SE)`:
 
 The same input value always maps to the same fake within one document. `Anna Andersson` and a later bare `Anna` coalesce to the same mapping entry automatically.
 
+### Swedish-specific handling
+
+| Area | Behaviour |
+|---|---|
+| Genitive | `Annas`, `Per Åkessons`, `Volvos` link to the base entity, and the fake gets the genitive too (`Karins`). Fakes keep the original's genitive behaviour, so `Mohammed` never becomes `Mats` (where `Mats` / `Mats` would be ambiguous). |
+| Names | Fakes keep gender (so *hon/han* still fit), number of name parts, hyphenated first names (`Anna-Karin` → `Ann-Marie`), particles (`von`, `af`) and ALL-CAPS. A fake never reuses any part of the real name. Family members with the same surname get the same fake surname. |
+| Aliases | `Anna`, `Lindqvist` or `Anna` (from `Anna-Karin`) map to the matching *part* of the fake. A name detected once is also found everywhere else in the document, including ALL-CAPS headings and bare surnames (`Ek noterade …`). |
+| Companies | `AB`, `HB`, `KB`, `AB (publ)`, `Aktiebolag` … are detected by pattern and kept on the fake; `Volvo AB (publ)` and `Volvo AB` are the same company. Large Swedish employers (`Volvo Personvagnar`, `ICA Gruppen`, `Skanska`, …) are detected even when NER misses them. Products such as `Teams`/`Excel` and public bodies (`Skatteverket`) are not anonymized. |
+| Addresses | `Storgatan 12B`, `Sankt Eriksgatan 5, 3 tr` — street plus house number/letter/floor are replaced together. |
+| Numbers | Personnummer keep the legal gender digit, approximate birth year, `+` (100+ years) and samordningsnummer form. Orgnr keep the legal-form digit (5 = AB …). Phones keep format and area/mobile prefix (`070-`, `08-`, `+46 8`). IBAN, VAT (`SE…01`), plusgiro and bankgiro are checksum-valid and keep their grouping. |
+| Case numbers | `Dnr KS 2024/123`, `Diarienummer 3.1.2-4567/2023`, `Mål nr T 1234-23`. |
+| Dates & ages | Swedish formats are preserved (`15 januari 2025`, `1:a mars`, `3 feb. 2024`). Ages need an age cue (`45 år gammal`, `39-årig`, `ålder: 52`), so durations like *har arbetat 3 år* are left alone. `SEK 500` is not a license plate. |
+| Email | Built from the fake person's name in the same shape (`anna-karin.lindqvist@gmail.com` → `ann-marie.soderstrom@gmail.com`); public webmail domains are kept, company domains replaced. |
+| Restore | Also restores forms the LLM invents: genitives (`Bergs` → `Lindqvists`) and bare first names or surnames, when unambiguous. Restoring a .docx keeps bold/italic formatting. |
+
 ## Getting started
 
 Three ways to run. Pick one.

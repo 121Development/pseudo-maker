@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .detect.pipeline import DetectionPipeline
+from .detect.pipeline import DetectionPipeline, propagate_person_names
 from .detect.recognizers.base import Span
 from .io import docx_io, text_io
 from .mapping.store import read_mapping, write_mapping
@@ -85,6 +85,28 @@ def _collect_preview_entities(mapper: Mapper) -> list[PreviewEntity]:
     ]
 
 
+def _map_spans(mapper: Mapper, spans: list[Span]) -> list[MappedSpan]:
+    """Map spans to entries, full names first so short forms coalesce.
+
+    Without this, "Anna" or "Annas" appearing *before* "Anna-Karin Lindqvist"
+    in the document would get a separate, unrelated fake. Persons go before
+    emails so email addresses can be rebuilt from the person's fake name.
+    """
+    type_rank = {"PERSON": 0, "COMPANY": 1}
+
+    def order(i: int) -> tuple:
+        s = spans[i]
+        return (type_rank.get(s.type, 2), -len(s.value.split()), -len(s.value), i)
+
+    entries: dict[int, object] = {}
+    for i in sorted(range(len(spans)), key=order):
+        entries[i] = mapper.map(spans[i].type, spans[i].value)
+    return [
+        MappedSpan(span=s, entity_id=entries[i].id, fake=mapper.fake_for_alias(entries[i], s.value))
+        for i, s in enumerate(spans)
+    ]
+
+
 def preview_docx(
     input_path: Path,
     *,
@@ -95,15 +117,17 @@ def preview_docx(
     mapper = Mapper(seed=seed)
     doc, handles = docx_io.load(input_path)
 
+    spans_per_handle = [
+        pipeline.detect(h.full_text) if h.full_text.strip() else [] for h in handles
+    ]
+    spans_per_handle = propagate_person_names([h.full_text for h in handles], spans_per_handle)
+    flat = [s for spans in spans_per_handle for s in spans]
+    flat_mapped = _map_spans(mapper, flat)
     mapped_per_handle: list[list[MappedSpan]] = []
-    for handle in handles:
-        mapped: list[MappedSpan] = []
-        if handle.full_text.strip():
-            for span in pipeline.detect(handle.full_text):
-                entry = mapper.map(span.type, span.value)
-                fake = mapper.fake_for_alias(entry, span.value)
-                mapped.append(MappedSpan(span=span, entity_id=entry.id, fake=fake))
-        mapped_per_handle.append(mapped)
+    pos = 0
+    for spans in spans_per_handle:
+        mapped_per_handle.append(flat_mapped[pos:pos + len(spans)])
+        pos += len(spans)
 
     session = CleanSession(
         input_path=input_path,
@@ -126,11 +150,8 @@ def preview_text(
     mapper = Mapper(seed=seed)
     text = text_io.read_text(input_path)
 
-    mapped_spans: list[MappedSpan] = []
-    for span in pipeline.detect(text):
-        entry = mapper.map(span.type, span.value)
-        fake = mapper.fake_for_alias(entry, span.value)
-        mapped_spans.append(MappedSpan(span=span, entity_id=entry.id, fake=fake))
+    spans = propagate_person_names([text], [pipeline.detect(text)])[0]
+    mapped_spans = _map_spans(mapper, spans)
 
     session = CleanSession(
         input_path=input_path,
@@ -232,9 +253,9 @@ def restore_docx(
             continue
         new_text, report = restore_text(handle.full_text, entries, fuzzy_threshold=fuzzy_threshold)
         if new_text != handle.full_text:
-            docx_io.apply_paragraph_replacements(
-                handle, [(0, len(handle.full_text), new_text)]
-            )
+            # Replace only the changed pieces so run formatting (bold, italic, …)
+            # around and inside each name survives.
+            docx_io.apply_paragraph_replacements(handle, _diff_replacements(handle.full_text, new_text))
         for hit in report.exact:
             seen_entry_ids_exact.add(hit["entry_id"])
             full_report.exact.append(hit)
@@ -252,6 +273,18 @@ def restore_docx(
                 "type": entry["type"],
             })
     return full_report
+
+
+def _diff_replacements(old: str, new: str) -> list[tuple[int, int, str]]:
+    """Minimal (start, end, replacement) edits turning `old` into `new`."""
+    import difflib
+
+    sm = difflib.SequenceMatcher(a=old, b=new, autojunk=False)
+    return [
+        (i1, i2, new[j1:j2])
+        for tag, i1, i2, j1, j2 in sm.get_opcodes()
+        if tag != "equal"
+    ]
 
 
 AUDIT_SCHEMA_VERSION = 1
