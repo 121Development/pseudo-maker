@@ -24,6 +24,15 @@ address, phone number, ID number, and similar identifier has been replaced
 with a realistic substitute. Treat the substitutes as if they were the real
 entities. When you respond, please preserve the substituted names, numbers,
 and identifiers verbatim — do not translate, paraphrase, or correct them.
+
+---
+
+Texten nedan har förbehandlats: alla person- och företagsnamn, adresser,
+telefonnummer, person- och organisationsnummer och liknande uppgifter har
+ersatts med realistiska påhittade värden. Behandla dem som om de vore de
+verkliga. Återge namn, nummer och andra uppgifter exakt som de står när du
+svarar – översätt, förkorta eller rätta dem inte. Svensk genitiv går bra
+("Karin Bergs"), men ändra inte stavningen av själva namnet.
 """
 
 

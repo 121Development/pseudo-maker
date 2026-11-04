@@ -20,6 +20,7 @@ from functools import lru_cache
 from typing import Iterable
 
 from .blocklist import (
+    is_blocklisted_company,
     is_blocklisted_person,
     is_country_or_continent,
 )
@@ -108,7 +109,22 @@ def _should_reject_company(text: str) -> bool:
         return True
     if "/" in t:
         return True
+    # Tech products / jargon ("Teams", "Excel", "Slack") are tagged ORG a lot.
+    if is_blocklisted_person(t) or is_blocklisted_company(t):
+        return True
     return False
+
+
+_CAPS_WORD = re.compile(r"\b[A-ZÅÄÖÉÜ]{3,}(?:-[A-ZÅÄÖÉÜ]{2,})*\b")
+
+
+def _titlecase_caps(text: str) -> str:
+    def fix(m: re.Match) -> str:
+        w = m.group(0)
+        return "-".join(p[0] + p[1:].lower() for p in w.split("-"))
+    out = _CAPS_WORD.sub(fix, text)
+    assert len(out) == len(text)
+    return out
 
 
 class SwedishNerRecognizer:
@@ -125,13 +141,16 @@ class SwedishNerRecognizer:
 
     def find(self, text: str) -> Iterable[Span]:
         nlp = self._ensure()
-        doc = nlp(text)
+        # spaCy misses names written in capitals ("MOHAMMED AL-HASSAN"), common
+        # in Swedish headings and forms. Title-case all-caps words before NER;
+        # same length, so offsets map straight back to the original text.
+        doc = nlp(_titlecase_caps(text))
         for ent in doc.ents:
             mapped = _LABEL_MAP.get(ent.label_)
             if not mapped:
                 continue
 
-            span_text = ent.text
+            span_text = text[ent.start_char:ent.end_char]
             start_char = ent.start_char
             end_char = ent.end_char
 

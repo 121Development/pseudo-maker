@@ -130,6 +130,9 @@ def apply_paragraph_replacements(
                 first_idx = i
                 break
         if first_idx is None:
+            if start == offsets[-1]:
+                # Insertion at the very end of the paragraph: append to last run.
+                runs[-1].text = (runs[-1].text or "") + repl
             continue
         # Find last run whose start < end
         last_idx = first_idx

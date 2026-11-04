@@ -98,3 +98,20 @@ def is_blocklisted_person(value: str) -> bool:
 def is_country_or_continent(value: str) -> bool:
     v = normalize(value)
     return v in COUNTRIES_AND_CONTINENTS
+
+
+# ORG-tagged terms that are products, platforms or public bodies rather than
+# identifying the parties of a document.
+COMPANY_BLOCKLIST: set[str] = {
+    "teams", "microsoft teams", "zoom", "skype", "google meet", "meet", "webex",
+    "linkedin", "facebook", "instagram", "youtube", "twitter", "tiktok", "github",
+    "gitlab", "jira", "confluence", "sharepoint", "onedrive", "dropbox",
+    "bankid", "mobilt bankid", "swish", "gdpr", "moms", "eu", "fn", "nato",
+    "skatteverket", "bolagsverket", "försäkringskassan", "arbetsförmedlingen",
+    "kronofogden", "polisen", "migrationsverket", "transportstyrelsen",
+    "riksdagen", "regeringen", "imy", "integritetsskyddsmyndigheten", "ab", "hb", "kb",
+}
+
+
+def is_blocklisted_company(value: str) -> bool:
+    return normalize(value) in COMPANY_BLOCKLIST
